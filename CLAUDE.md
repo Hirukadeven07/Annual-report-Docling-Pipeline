@@ -209,8 +209,8 @@ models:
     num_ctx: 32768
   - name: qwen2.5:3b
     num_ctx: 32768
-  - name: phi3.5
-    num_ctx: 32768
+  - name: phi4
+    num_ctx: 16384
   - name: gemma2:2b
     num_ctx: 8192
 inference:
