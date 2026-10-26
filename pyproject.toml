@@ -1,0 +1,23 @@
+[project]
+name = "slm-bench"
+version = "0.1.0"
+description = "Benchmarking pipeline for small language models on CSE annual reports."
+requires-python = ">=3.11"
+dependencies = [
+    "docling",
+    "ollama",
+    "pandas",
+    "numpy",
+    "matplotlib",
+    "psutil",
+    "tiktoken",
+    "rouge-score",
+    "pyyaml",
+    "typer",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "bert-score"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
