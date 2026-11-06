@@ -75,7 +75,7 @@ annual-report-docling-pipeline/
 PDFs ──copy──▶ Google Drive ──notebook on Colab GPU──▶ Drive output ──docling-pipeline run──▶ data/extracted + data/parsed
 ```
 
-1. The PDFs stay in `data/reports`, with a copy in `My Drive/chunkwise-cse/reports`.
+1. The PDFs stay in `data.reports_dir`, the `Annual Reports` folder on this PC. Drive for Desktop syncs it, and the notebook reads it from `Othercomputers/My laptop/Lectures/Year 2/DSGP/Annual Reports`.
 2. `notebooks/chunkwise_docling_gpu.ipynb` converts them on a Colab GPU and writes to `My Drive/chunkwise-cse/extracted_<layout model>`. It holds its own Docling settings and skips `Interim` folders.
 3. `docling-pipeline run` copies finished reports from Drive into the project. With `engine: docling` it converts locally instead.
 
@@ -100,7 +100,7 @@ docling-pipeline run --config configs/extraction.yaml --force --reports johnkeel
 ```yaml
 run_id: colab_extraction
 data:
-  reports_dir: data/reports
+  reports_dir: C:/Users/hiruk/Desktop/Lectures/Year 2/DSGP/Annual Reports
   parsed_dir: data/parsed
   extracted_dir: data/extracted
 parse:
