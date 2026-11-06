@@ -44,8 +44,8 @@ def test_unknown_key_is_named() -> None:
 def test_unknown_top_level_key() -> None:
     """Reject an unknown top-level key."""
     data = config_dict()
-    data["models"] = []
-    with pytest.raises(ConfigError, match="unknown key: models"):
+    data["output"] = []
+    with pytest.raises(ConfigError, match="unknown key: output"):
         config_from_dict(data)
 
 
