@@ -263,8 +263,9 @@ def test_pipeline_uses_the_import_for_the_colab_engine(
     root = tmp_path / "project"
     touch_pdf(root / "data" / "reports" / "Commercial Bank" / "commercialbank_2024.pdf")
     write_colab_output(root / "drive", "Commercial Bank/commercialbank_2024")
+    overrides = {"import_dir": "  import_dir: drive", "reports_dir": "  reports_dir: data/reports"}
     lines = [
-        "  import_dir: drive" if line.strip().startswith("import_dir:") else line
+        overrides.get(line.strip().partition(":")[0], line)
         for line in EXTRACTION_CONFIG.read_text(encoding="utf-8").splitlines()
     ]
     (root / "config.yaml").write_text("\n".join(lines), encoding="utf-8")

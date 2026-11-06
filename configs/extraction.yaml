@@ -1,6 +1,6 @@
 run_id: colab_extraction
 data:
-  reports_dir: data/reports
+  reports_dir: C:/Users/hiruk/Desktop/Lectures/Year 2/DSGP/Annual Reports
   parsed_dir: data/parsed
   extracted_dir: data/extracted
 parse:

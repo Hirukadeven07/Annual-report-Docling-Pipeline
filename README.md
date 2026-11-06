@@ -16,7 +16,7 @@ Docling takes about an hour per report on a CPU and roughly ten minutes on a Col
 
 You need the Google Colab extension for VS Code and Google Drive for Desktop, signed in to the same Google account as Colab.
 
-1. Copy `data/reports` to `My Drive/chunkwise-cse/reports`, keeping the company sub-folders.
+1. Keep the PDFs in `Desktop/Lectures/Year 2/DSGP/Annual Reports`, in their company sub-folders, and let Drive for Desktop finish syncing. Colab reads them from `Othercomputers/My laptop/Lectures/Year 2/DSGP/Annual Reports`.
 2. Open the notebook in VS Code and choose **Select Kernel → Colab → New Colab Server → GPU**.
 3. Choose **Run All** and approve the Google Drive prompt. Interim reports are skipped. If the session disconnects, run all again, and finished reports are skipped.
 4. Wait for Drive for Desktop to sync, and check that `parse.import_dir` in `configs/extraction.yaml` uses the right drive letter.
@@ -26,6 +26,6 @@ You need the Google Colab extension for VS Code and Google Drive for Desktop, si
 docling-pipeline run --config configs/extraction.yaml --force
 ```
 
-Each report's JSON, markdown and pictures land in `data/extracted/`, sorted like `data/reports`, and its markdown is copied to `data/parsed/`. `--force` replaces markdown from earlier local conversions, and it replaces only reports Colab has finished. Without it, reports that already have markdown are skipped. Reports Colab has not finished are logged as `missing` in `runs/colab_extraction/extraction_log.csv`.
+Each report's JSON, markdown and pictures land in `data/extracted/`, sorted like the `Annual Reports` folder, and its markdown is copied to `data/parsed/`. `--force` replaces markdown from earlier local conversions, and it replaces only reports Colab has finished. Without it, reports that already have markdown are skipped. Reports Colab has not finished are logged as `missing` in `runs/colab_extraction/extraction_log.csv`.
 
 To convert locally instead, set `parse.engine` to `docling`.
