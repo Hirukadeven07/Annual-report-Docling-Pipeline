@@ -9,12 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from slm_bench.config import Config, load_config
-from slm_bench.pipeline import run_pipeline
-from slm_bench.stages.colab_import import run_colab_import
-from slm_bench.stages.parse import DuplicateReportError
+from docling_pipeline.config import Config, load_config
+from docling_pipeline.pipeline import run_pipeline
+from docling_pipeline.stages.colab_import import run_colab_import
+from docling_pipeline.stages.parse import DuplicateReportError
 
-BASELINE = Path(__file__).resolve().parents[1] / "configs" / "baseline.yaml"
+EXTRACTION_CONFIG = Path(__file__).resolve().parents[1] / "configs" / "extraction.yaml"
 LOG_HEADER = "file,status,pages,seconds,pages_per_second\n"
 MARKDOWN = "# Report\n\n| a | b |\n|---|---|\n\n" + "Revenue grew strongly. " * 50
 
@@ -60,7 +60,7 @@ def config(tmp_path: Path) -> Config:
     touch_pdf(reports / "Commercial Bank" / "commercialbank_2024.pdf")
     touch_pdf(reports / "John Keells" / "Annual" / "johnkeells_2024.pdf")
     touch_pdf(reports / "John Keells" / "Interim" / "johnkeells_2024_june.pdf")
-    base = load_config(BASELINE)
+    base = load_config(EXTRACTION_CONFIG)
     data = dataclasses.replace(
         base.data,
         reports_dir=str(reports),
@@ -143,7 +143,7 @@ def test_pages_fall_back_to_the_docling_json(config: Config, drive: Path, tmp_pa
 
 
 def test_import_ignores_interim_output(config: Config, drive: Path, tmp_path: Path) -> None:
-    """Leave out reports excluded from the benchmark even when Colab converted them."""
+    """Leave out reports excluded from extraction even when Colab converted them."""
     write_colab_output(drive, "John Keells/Interim/johnkeells_2024_june")
     records = run_colab_import(config, tmp_path / "run")
     assert [r.report for r in records] == ["commercialbank_2024", "johnkeells_2024"]
@@ -265,10 +265,10 @@ def test_pipeline_uses_the_import_for_the_colab_engine(
     write_colab_output(root / "drive", "Commercial Bank/commercialbank_2024")
     lines = [
         "  import_dir: drive" if line.strip().startswith("import_dir:") else line
-        for line in BASELINE.read_text(encoding="utf-8").splitlines()
+        for line in EXTRACTION_CONFIG.read_text(encoding="utf-8").splitlines()
     ]
     (root / "config.yaml").write_text("\n".join(lines), encoding="utf-8")
     monkeypatch.chdir(root)
-    run_dir = run_pipeline("config.yaml", stage="parse", runs_dir="runs")
+    run_dir = run_pipeline("config.yaml", runs_dir="runs")
     assert (root / "data" / "parsed" / "commercialbank_2024.md").is_file()
     assert read_log(run_dir)[0]["status"] == "ok"
