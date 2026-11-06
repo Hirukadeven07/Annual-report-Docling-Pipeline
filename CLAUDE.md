@@ -47,8 +47,11 @@ slm-bench/
 ├── configs/
 │   ├── baseline.yaml
 │   └── chunked.yaml
+├── notebooks/
+│   └── chunkwise_docling_gpu.ipynb   Docling extraction on a Colab GPU
 ├── data/
-│   ├── reports/                 input PDFs, named <company>_<year>.pdf
+│   ├── reports/                 input PDFs, named <company>_<year>.pdf, in any subfolders
+│   ├── extracted/               Colab output (JSON, markdown, pictures), same subfolders as reports/
 │   ├── parsed/                  Docling markdown, <company>_<year>.md
 │   └── gold/
 │       ├── TEMPLATE.json
@@ -70,7 +73,8 @@ slm-bench/
 │       ├── config.py            YAML loading and validation
 │       ├── schemas.py           dataclasses for Unit, RawOutput, GoldFile
 │       ├── stages/
-│       │   ├── parse.py
+│       │   ├── parse.py         local Docling conversion and report discovery
+│       │   ├── colab_import.py  imports the notebook's output
 │       │   ├── prepare.py
 │       │   ├── infer.py
 │       │   ├── score.py
@@ -100,7 +104,7 @@ slm-bench/
     └── fixtures/
 ```
 
-`data/reports/*.pdf`, `data/parsed/*.md` and `runs/` may be large and are git-ignored except for `runs/<run_id>/config.yaml` and `summary/` for runs worth keeping.
+`data/reports/*.pdf`, `data/extracted/`, `data/parsed/*.md` and `runs/` may be large and are git-ignored except for `runs/<run_id>/config.yaml` and `summary/` for runs worth keeping.
 
 ## 4. Pipeline
 
@@ -114,7 +118,7 @@ PDFs ──parse──▶ markdown ──prepare──▶ units ──infer─�
 
 | Stage | Reads | Writes | Notes |
 |---|---|---|---|
-| `parse` | `data/reports/*.pdf` | `data/parsed/*.md`, `runs/<id>/extraction_log.csv` | Docling only. Table structure on, OCR off by default. Flags scans (very little text per page). |
+| `parse` | Colab output in `parse.import_dir`, or `data/reports/*.pdf` | `data/extracted/`, `data/parsed/*.md`, `runs/<id>/extraction_log.csv` | Docling only. With `engine: colab` it imports what the notebook produced; with `engine: docling` it converts locally, about 1 hour per report on a CPU. Flags scans (very little text per page). |
 | `prepare` | `data/parsed/*.md`, config (strategy, models) | `runs/<id>/prepared/` | Applies the configured strategy per model's context budget. Records token counts and truncation. |
 | `infer` | prepared units, prompts, models | `runs/<id>/raw_outputs.csv` | Calls the backend, measures latency, time to first token, tokens/sec, peak memory. Appends row by row. |
 | `score` | `raw_outputs.csv`, `data/gold`, parsed text | `scored.csv`, `fact_level.csv` | Computes all metrics. Missing gold files skip gold-based metrics with a warning. |
@@ -122,7 +126,7 @@ PDFs ──parse──▶ markdown ──prepare──▶ units ──infer─�
 
 ### Resumability rules
 
-- `parse`: skip a PDF if its markdown exists, unless `--force`.
+- `parse`: skip a report if its markdown exists, unless `--force`. Reports with no finished Colab output are logged as `missing`, and reruns pick them up.
 - `prepare`: skip a (model, report) pair if its prepared file exists and the strategy params are unchanged.
 - `infer`: the key is `(model, report, prompt, run)`. Skip keys already present **without** an error. Rows with an error are retried and appended; `score` keeps the **last** row per key.
 - `score` and `report` are cheap and always recompute from their inputs.
@@ -136,7 +140,7 @@ slm-bench run --config configs/baseline.yaml --stage infer --models llama3.2:3b 
 slm-bench run --config configs/baseline.yaml --dry-run
 slm-bench tokens --config configs/baseline.yaml
 slm-bench init-gold --config configs/baseline.yaml
-slm-bench compare runs/baseline runs/chunked
+slm-bench compare runs/baseline_colab runs/chunked
 ```
 
 `--dry-run` swaps the backend for `fake` and writes to a separate run folder so real results are never polluted.
@@ -190,15 +194,18 @@ Generation:
 `configs/baseline.yaml`:
 
 ```yaml
-run_id: baseline
+run_id: baseline_colab
 data:
   reports_dir: data/reports
   parsed_dir: data/parsed
   gold_dir: data/gold
+  extracted_dir: data/extracted
 parse:
-  engine: docling
+  engine: colab
+  import_dir: G:/My Drive/chunkwise-cse/extracted_egret_large
   ocr: false
   table_mode: accurate
+  exclude_dirs: [Interim]
 prepare:
   strategy: whole_report
   params:
@@ -232,7 +239,11 @@ analysis:
   length_bins: [0, 8000, 16000, 32000, 64000]
 ```
 
-The config is validated on load. Unknown keys are errors. A frozen copy is written to `runs/<run_id>/config.yaml`. Changing the strategy or its params means a new `run_id`.
+The config is validated on load. Unknown keys are errors. A frozen copy is written to `runs/<run_id>/config.yaml`; if a different config is already frozen there, the run stops. Changing the strategy or its params means a new `run_id`.
+
+`parse.engine` is `colab` or `docling`. `import_dir` is required for `colab`, and points at the notebook's output folder as Google Drive for Desktop shows it on this machine. Under `colab`, `ocr` and `table_mode` are not applied, because the notebook holds its own Docling settings.
+
+`parse` searches `reports_dir` recursively. Each report is named by its lowercased filename stem (`johnkeells_2024`), so stems must be unique across subfolders. Folders listed in `parse.exclude_dirs` (case-insensitive, optional) are skipped, which keeps interim reports out of the annual-report benchmark.
 
 ## 8. Prompts
 
@@ -333,7 +344,9 @@ Report-stage analyses:
 ## 11. Stage specifications and acceptance checks
 
 ### parse
-- Converts every PDF in `data/reports` with Docling (table structure on, accurate mode, OCR off unless `ocr: true`).
+- `notebooks/chunkwise_docling_gpu.ipynb` converts the PDFs on a Colab GPU (table structure on, accurate mode, OCR off) and writes to Google Drive. Google Drive for Desktop makes that output visible on this machine.
+- `engine: colab` copies each finished report's JSON, markdown, `_pictures.json` and images to `data/extracted/`, in the same subfolder its PDF has under `data/reports`, and copies the markdown to `data/parsed/<report>.md`. Files are matched by lowercased stem. A report without all of its files counts as `missing`.
+- `engine: docling` converts locally instead, with the settings in `parse`.
 - Logs pages, characters, seconds, status per report. Marks "low text, possibly a scan" when characters per page are under about 200.
 - Continues after a per-file failure and records it.
 - **Done when**: each text-based PDF has a markdown file in which financial tables appear as markdown tables (check two or three by eye).
@@ -383,6 +396,7 @@ Report-stage analyses:
 - Ollama silently uses a small default `num_ctx`. Always pass it explicitly and verify with `prompt_eval_count`.
 - Token counts from `cl100k_base` are approximate for Llama, Qwen, Phi and Gemma tokenizers. Keep the safety factor.
 - Docling output differs between layouts. Markdown tables use more tokens than plain text, so always count tokens on the parsed markdown.
+- Markdown from local Docling and from the notebook use different settings. Do not mix them in one run: import with `--force` to replace all of it.
 - Scanned PDFs produce almost no text. Replace them with text-based reports or enable OCR for that file only.
 - Do not report only ROUGE. Accuracy, hallucinated numbers and coverage are the headline metrics.
 - Never overwrite a finished run folder. Use a new `run_id`.
