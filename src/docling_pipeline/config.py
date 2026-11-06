@@ -10,7 +10,6 @@ from typing import Any
 
 import yaml
 
-PROMPT_NAMES = ("summary", "facts", "risks")
 TABLE_MODES = ("accurate", "fast")
 PARSE_ENGINES = ("docling", "colab")
 
@@ -21,11 +20,10 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class DataConfig:
-    """Locations of the input data folders."""
+    """Locations of the input and output data folders."""
 
     reports_dir: str
     parsed_dir: str
-    gold_dir: str
     extracted_dir: str = "data/extracted"
 
 
@@ -41,71 +39,12 @@ class ParseConfig:
 
 
 @dataclass(frozen=True)
-class PrepareConfig:
-    """Strategy that turns a report into model input units."""
-
-    strategy: str
-    params: dict[str, Any]
-
-
-@dataclass(frozen=True)
-class ModelConfig:
-    """One model to benchmark and its context window."""
-
-    name: str
-    num_ctx: int
-
-
-@dataclass(frozen=True)
-class InferenceConfig:
-    """Backend and generation settings shared by every model."""
-
-    backend: str
-    runs: int
-    seed: int
-    temperature: float
-    max_new_tokens: int
-    keep_alive: str
-
-
-@dataclass(frozen=True)
-class ScoringConfig:
-    """Switches for optional metrics."""
-
-    bertscore: bool
-
-
-@dataclass(frozen=True)
-class RankingWeights:
-    """Weights of the overall model ranking score."""
-
-    accuracy: float
-    hallucination: float
-    json: float
-    efficiency: float
-
-
-@dataclass(frozen=True)
-class AnalysisConfig:
-    """Settings for the report-stage analyses."""
-
-    length_bins: list[int]
-
-
-@dataclass(frozen=True)
 class Config:
     """Complete, validated run configuration."""
 
     run_id: str
     data: DataConfig
     parse: ParseConfig
-    prepare: PrepareConfig
-    models: list[ModelConfig]
-    inference: InferenceConfig
-    prompts: list[str]
-    scoring: ScoringConfig
-    ranking_weights: RankingWeights
-    analysis: AnalysisConfig
 
 
 def load_config(path: str | Path) -> Config:
@@ -175,20 +114,13 @@ def freeze_config(config: Config, source_path: str | Path, runs_dir: str | Path)
 
 def _build(target: Any, value: Any, path: str) -> Any:
     """Convert a parsed YAML value into the annotated type, checking it."""
-    origin = typing.get_origin(target)
     if dataclasses.is_dataclass(target):
         return _build_dataclass(target, value, path)
-    if origin is list:
+    if typing.get_origin(target) is list:
         if not isinstance(value, list):
             raise ConfigError(f"{_label(path)} must be a list")
         (item_type,) = typing.get_args(target)
         return [_build(item_type, item, f"{path}[{i}]") for i, item in enumerate(value)]
-    if origin is dict:
-        if not isinstance(value, dict):
-            raise ConfigError(f"{_label(path)} must be a mapping")
-        return dict(value)
-    if target is Any:
-        return value
     return _check_scalar(target, value, path)
 
 
@@ -222,14 +154,6 @@ def _check_scalar(target: Any, value: Any, path: str) -> Any:
         if not isinstance(value, bool):
             raise ConfigError(f"{_label(path)} must be true or false")
         return value
-    if target is int:
-        if isinstance(value, bool) or not isinstance(value, int):
-            raise ConfigError(f"{_label(path)} must be an integer")
-        return value
-    if target is float:
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise ConfigError(f"{_label(path)} must be a number")
-        return float(value)
     if target is str:
         if not isinstance(value, str) or not value.strip():
             raise ConfigError(f"{_label(path)} must be a non-empty string")
@@ -238,36 +162,13 @@ def _check_scalar(target: Any, value: Any, path: str) -> Any:
 
 
 def _check_values(config: Config) -> None:
-    """Validate value ranges and allowed choices across sections."""
+    """Validate allowed choices across sections."""
     if config.parse.engine not in PARSE_ENGINES:
         raise ConfigError(f"parse.engine must be one of {list(PARSE_ENGINES)}")
     if config.parse.engine == "colab" and not config.parse.import_dir:
         raise ConfigError("parse.import_dir is required when parse.engine is colab")
     if config.parse.table_mode not in TABLE_MODES:
         raise ConfigError(f"parse.table_mode must be one of {list(TABLE_MODES)}")
-    if not config.models:
-        raise ConfigError("models must list at least one model")
-    names = [model.name for model in config.models]
-    if len(set(names)) != len(names):
-        raise ConfigError("models must not repeat a model name")
-    for i, model in enumerate(config.models):
-        if model.num_ctx <= 0:
-            raise ConfigError(f"models[{i}].num_ctx must be positive")
-    safety = config.prepare.params.get("token_safety")
-    if safety is not None and not (isinstance(safety, (int, float)) and 0 < safety <= 1):
-        raise ConfigError("prepare.params.token_safety must be in (0, 1]")
-    reserve = config.prepare.params.get("prompt_reserve")
-    if reserve is not None and not (isinstance(reserve, int) and reserve >= 0):
-        raise ConfigError("prepare.params.prompt_reserve must be a non-negative integer")
-    if config.inference.runs <= 0:
-        raise ConfigError("inference.runs must be positive")
-    if config.inference.max_new_tokens <= 0:
-        raise ConfigError("inference.max_new_tokens must be positive")
-    unknown_prompts = [p for p in config.prompts if p not in PROMPT_NAMES]
-    if unknown_prompts or not config.prompts:
-        raise ConfigError(f"prompts must be a non-empty subset of {list(PROMPT_NAMES)}")
-    if config.analysis.length_bins != sorted(set(config.analysis.length_bins)):
-        raise ConfigError("analysis.length_bins must be strictly increasing")
 
 
 def _join(path: str, key: str) -> str:

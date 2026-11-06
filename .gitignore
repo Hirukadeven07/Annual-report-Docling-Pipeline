@@ -11,4 +11,3 @@ runs/*
 !runs/*/
 runs/*/*
 !runs/*/config.yaml
-!runs/*/summary/

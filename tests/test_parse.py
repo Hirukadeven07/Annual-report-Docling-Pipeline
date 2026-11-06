@@ -9,10 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from slm_bench.config import Config, load_config
-from slm_bench.stages.parse import DuplicateReportError, discover_reports, run_parse
+from docling_pipeline.config import Config, load_config
+from docling_pipeline.stages.parse import DuplicateReportError, discover_reports, run_parse
 
-BASELINE = Path(__file__).resolve().parents[1] / "configs" / "baseline.yaml"
+EXTRACTION_CONFIG = Path(__file__).resolve().parents[1] / "configs" / "extraction.yaml"
 LONG_PAGE = "Revenue grew strongly. " * 20
 
 
@@ -35,8 +35,8 @@ def reports_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def config(tmp_path: Path, reports_dir: Path) -> Config:
-    """Return the baseline config pointed at temporary folders."""
-    base = load_config(BASELINE)
+    """Return the shipped config pointed at temporary folders."""
+    base = load_config(EXTRACTION_CONFIG)
     data = dataclasses.replace(
         base.data, reports_dir=str(reports_dir), parsed_dir=str(tmp_path / "parsed")
     )
@@ -92,7 +92,7 @@ def test_discover_rejects_duplicate_names(reports_dir: Path) -> None:
 
 def test_parse_writes_markdown_and_log(config: Config, tmp_path: Path) -> None:
     """Convert each annual report and log pages, chars and status."""
-    run_dir = tmp_path / "runs" / "baseline"
+    run_dir = tmp_path / "runs" / "extraction"
     stub = StubConverter()
     records = run_parse(config, run_dir, converter=stub)
     assert sorted(stub.calls) == ["commercialbank_2024", "johnkeells_2024"]
@@ -108,7 +108,7 @@ def test_parse_writes_markdown_and_log(config: Config, tmp_path: Path) -> None:
 
 def test_parse_skips_existing_unless_forced(config: Config, tmp_path: Path) -> None:
     """Skip reports with markdown on rerun, and redo them with force."""
-    run_dir = tmp_path / "runs" / "baseline"
+    run_dir = tmp_path / "runs" / "extraction"
     initial = run_parse(config, run_dir, converter=StubConverter(delay=0.05))
     assert all(r.seconds > 0 for r in initial)
     second = StubConverter()
@@ -124,7 +124,7 @@ def test_parse_skips_existing_unless_forced(config: Config, tmp_path: Path) -> N
 
 def test_parse_report_filter(config: Config, tmp_path: Path) -> None:
     """Convert only the requested report and keep other log rows."""
-    run_dir = tmp_path / "runs" / "baseline"
+    run_dir = tmp_path / "runs" / "extraction"
     run_parse(config, run_dir, converter=StubConverter())
     stub = StubConverter()
     run_parse(config, run_dir, force=True, report_filter=["JohnKeells_2024"], converter=stub)
@@ -134,7 +134,7 @@ def test_parse_report_filter(config: Config, tmp_path: Path) -> None:
 
 def test_parse_continues_after_failure(config: Config, tmp_path: Path) -> None:
     """Log a failed report without writing markdown and keep going."""
-    run_dir = tmp_path / "runs" / "baseline"
+    run_dir = tmp_path / "runs" / "extraction"
     records = run_parse(config, run_dir, converter=StubConverter(fail_on="commercialbank_2024"))
     status = {r.report: r.status for r in records}
     assert status["commercialbank_2024"].startswith("failed: RuntimeError")
@@ -146,7 +146,7 @@ def test_parse_continues_after_failure(config: Config, tmp_path: Path) -> None:
 
 def test_log_written_after_each_report(config: Config, tmp_path: Path) -> None:
     """Keep finished rows in the log when a later report crashes the run."""
-    run_dir = tmp_path / "runs" / "baseline"
+    run_dir = tmp_path / "runs" / "extraction"
 
     def crash_on_second(pdf: Path) -> tuple[str, int]:
         """Convert the first report, then abort as if the process was killed."""
@@ -161,7 +161,7 @@ def test_log_written_after_each_report(config: Config, tmp_path: Path) -> None:
 
 def test_failed_report_is_retried(config: Config, tmp_path: Path) -> None:
     """Retry a report that failed earlier, since it has no markdown."""
-    run_dir = tmp_path / "runs" / "baseline"
+    run_dir = tmp_path / "runs" / "extraction"
     run_parse(config, run_dir, converter=StubConverter(fail_on="commercialbank_2024"))
     retry = StubConverter()
     run_parse(config, run_dir, converter=retry)

@@ -10,8 +10,8 @@ from collections.abc import Callable, Iterable
 from dataclasses import asdict, fields
 from pathlib import Path
 
-from slm_bench.config import Config, ParseConfig
-from slm_bench.schemas import ExtractionRecord
+from docling_pipeline.config import Config, ParseConfig
+from docling_pipeline.schemas import ExtractionRecord
 
 LOW_TEXT_CHARS_PER_PAGE = 200
 LOG_FILENAME = "extraction_log.csv"

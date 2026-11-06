@@ -3,28 +3,21 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "slm-bench"
+name = "annual-report-docling-pipeline"
 version = "0.1.0"
-description = "Benchmarking pipeline for small language models on CSE annual reports."
+description = "Docling extraction pipeline for Colombo Stock Exchange annual reports."
 requires-python = ">=3.11"
 dependencies = [
     "docling",
-    "ollama",
-    "pandas",
-    "numpy",
-    "matplotlib",
-    "psutil",
-    "tiktoken",
-    "rouge-score",
     "pyyaml",
     "typer",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "bert-score"]
+dev = ["pytest"]
 
 [project.scripts]
-slm-bench = "slm_bench.cli:app"
+docling-pipeline = "docling_pipeline.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]

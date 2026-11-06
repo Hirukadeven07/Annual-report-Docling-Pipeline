@@ -1,0 +1,11 @@
+run_id: colab_extraction
+data:
+  reports_dir: data/reports
+  parsed_dir: data/parsed
+  extracted_dir: data/extracted
+parse:
+  engine: colab
+  import_dir: G:/My Drive/chunkwise-cse/extracted_egret_large
+  ocr: false
+  table_mode: accurate
+  exclude_dirs: [Interim]

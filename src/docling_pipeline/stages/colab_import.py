@@ -11,9 +11,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from slm_bench.config import Config
-from slm_bench.schemas import ExtractionRecord
-from slm_bench.stages.parse import (
+from docling_pipeline.config import Config
+from docling_pipeline.schemas import ExtractionRecord
+from docling_pipeline.stages.parse import (
     LOG_FILENAME,
     DuplicateReportError,
     discover_reports,
