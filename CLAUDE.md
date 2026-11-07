@@ -44,8 +44,7 @@ annual-report-docling-pipeline/
 ├── notebooks/
 │   └── chunkwise_docling_gpu.ipynb   Docling extraction on a Colab GPU
 ├── data/
-│   ├── reports/                 input PDFs, named <company>_<year>.pdf, in any subfolders
-│   ├── extracted/               JSON, markdown and pictures, same subfolders as reports/
+│   ├── extracted/               JSON, markdown and pictures, same subfolders as reports_dir
 │   └── parsed/                  flat copy of the markdown, <company>_<year>.md
 ├── runs/
 │   └── <run_id>/
@@ -67,7 +66,7 @@ annual-report-docling-pipeline/
     └── test_parse.py
 ```
 
-`data/reports/`, `data/extracted/`, `data/parsed/*.md` and `runs/` may be large and are git-ignored, except for `runs/<run_id>/config.yaml`.
+The input PDFs live outside the repo, in `data.reports_dir` (named `<company>_<year>.pdf`, in any subfolders). `data/extracted/`, `data/parsed/*.md` and `runs/` may be large and are git-ignored, except for `runs/<run_id>/config.yaml`. `data/reports/` is an old local copy of the PDFs and is git-ignored too.
 
 ## 4. Pipeline
 
