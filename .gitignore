@@ -3,7 +3,10 @@ __pycache__/
 .venv/
 .pytest_cache/
 *.egg-info/
-data/reports/**/*.pdf
+.ipynb_checkpoints/
+.vscode/
+.claude/settings.local.json
+data/reports/
 data/parsed/*.md
 data/extracted/
 runs/*
