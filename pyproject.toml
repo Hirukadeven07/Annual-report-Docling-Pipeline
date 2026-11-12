@@ -15,6 +15,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
+eda = [
+    "ipykernel",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "pymupdf",
+    "rapidfuzz",
+    "scikit-learn",
+    "seaborn",
+]
 
 [project.scripts]
 docling-pipeline = "docling_pipeline.cli:app"
