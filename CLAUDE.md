@@ -26,7 +26,7 @@ Extraction errors carry into everything built on this output, so correct tables 
 - Docstring format (Google style): a one-line summary in the imperative mood, then `Args:`, `Returns:` and `Raises:` sections only when they add information. Keep them short. Add a one-line module docstring at the top of each file. Include type hints on all function signatures.
 - Deliver **complete, working files**, not partial snippets. When editing, keep the file runnable.
 - Prefer small, focused modules and functions. Iterate in small steps; keep each step runnable.
-- Standard library plus well-known packages only: `docling`, `pyyaml`, `typer`, `pytest`. The notebook also uses what Colab provides.
+- Standard library plus well-known packages only: `docling`, `pyyaml`, `typer`, `pytest`. The Colab notebook also uses what Colab provides. The EDA (`docling_pipeline.eda` and its notebook) may also use the `eda` extra: `pandas`, `numpy`, `pymupdf`, `rapidfuzz`, `scikit-learn`, `matplotlib`, `seaborn`.
 - Every stage must be **resumable and idempotent**: re-running skips finished work unless forced.
 - Runs are **reproducible**: a frozen copy of the config is saved with every run.
 - Never hand-edit extracted output. Fix the pipeline and extract again.
@@ -42,10 +42,13 @@ annual-report-docling-pipeline/
 ├── configs/
 │   └── extraction.yaml
 ├── notebooks/
-│   └── chunkwise_docling_gpu.ipynb   Docling extraction on a Colab GPU
+│   ├── chunkwise_docling_gpu.ipynb   Docling extraction on a Colab GPU
+│   └── chunkwise_eda.ipynb           exploratory data analysis (Chunkwise_CSE_EDA_Plan.md)
 ├── data/
 │   ├── extracted/               JSON, markdown and pictures, same subfolders as reports_dir
-│   └── parsed/                  flat copy of the markdown, <company>_<year>.md
+│   ├── parsed/                  flat copy of the markdown, <company>_<year>.md
+│   ├── eda/                     EDA feature caches and result tables (git-ignored)
+│   └── reference/               hand-maintained EDA inputs: company_metadata.csv, ground_truth.csv
 ├── runs/
 │   └── <run_id>/
 │       ├── config.yaml          frozen copy of the config used
@@ -57,16 +60,18 @@ annual-report-docling-pipeline/
 │       ├── pipeline.py          picks the engine and runs it
 │       ├── config.py            YAML loading and validation
 │       ├── schemas.py           the extraction log record
-│       └── stages/
-│           ├── parse.py         local Docling conversion and report discovery
-│           └── colab_import.py  imports the notebook's output
+│       ├── stages/
+│       │   ├── parse.py         local Docling conversion and report discovery
+│       │   └── colab_import.py  imports the notebook's output
+│       └── eda/                 helpers for the EDA notebook: PDF and Docling features, screening, analysis
 └── tests/
     ├── test_colab_import.py
     ├── test_config.py
+    ├── test_eda.py
     └── test_parse.py
 ```
 
-The input PDFs live outside the repo, in `data.reports_dir` (named `<company>_<year>.pdf`, in any subfolders). `data/extracted/`, `data/parsed/*.md` and `runs/` may be large and are git-ignored, except for `runs/<run_id>/config.yaml`. `data/reports/` is an old local copy of the PDFs and is git-ignored too.
+The input PDFs live outside the repo, in `data.reports_dir` (named `<company>_<year>.pdf`, in any subfolders). `data/extracted/`, `data/parsed/*.md` and `runs/` may be large and are git-ignored, except for `runs/<run_id>/config.yaml`. `data/reports/` is an old local copy of the PDFs and is git-ignored too. `data/eda/` holds rebuildable EDA caches and is git-ignored; `data/reference/` is edited by hand and tracked.
 
 ## 4. Pipeline
 
@@ -138,7 +143,7 @@ For each report, `data/extracted/<same subfolder as the PDF>/` holds:
 
 ## 8. Open decisions (do not assume)
 
-- **Checking extraction quality**: the planned direction is an HTML view beside the original PDF pages, plus an automated comparison of key figures with hand-checked values. Not built yet.
+- **Checking extraction quality**: the planned direction is an HTML view beside the original PDF pages, plus an automated comparison of key figures with hand-checked values. The EDA notebook runs automatic accounting checks and compares against `data/reference/ground_truth.csv` once it is filled in; the HTML view is not built yet.
 - **Finish line for tuning**: the target for correct figures and tables is not set yet.
 - **Document extraction tooling**: Docling is the current choice. Final tool choice for the production pipeline is still open.
 
